@@ -87,7 +87,10 @@ fn draw(model: &obj::Obj<obj::Position, u32>, frame_counter: u32, buf: &mut [u32
       (&ndc[1], &ndc[2]),
       (&ndc[0], &ndc[2]),
     ] {
-      let step_count = 10;
+      let dx = (pair.1.x - pair.0.x) * WIDTH as f32 / 2.0;
+      let dy = (pair.1.y - pair.0.y) * HEIGHT as f32 / 2.0;
+      let pixels_long = (dx * dx + dy * dy).sqrt();
+      let step_count = (pixels_long as usize).min(500);
       for step in 0..step_count {
         let t = step as f32 / step_count as f32;
         let interpolated = pair.0 + (pair.1 - pair.0) * t;
