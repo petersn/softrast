@@ -6,3 +6,4 @@ edition = "2021"
 [dependencies]
 minifb = "0.27.0"
 nalgebra = "0.33.2"
+obj-rs = "0.7.4"

@@ -10,10 +10,9 @@ fn model_matrix(
   scale: f32,
 ) -> Matrix4<f32> {
   let mut model_matrix = Matrix4::identity();
-  let rotation = rotation.to_rotation_matrix();
-  model_matrix.fixed_view_mut::<3, 3>(0, 0).copy_from(&rotation.matrix());
+  let rotation = scale * rotation.to_rotation_matrix().matrix();
+  model_matrix.fixed_view_mut::<3, 3>(0, 0).copy_from(&rotation);
   model_matrix.fixed_view_mut::<3, 1>(0, 3).copy_from(&translation);
-  model_matrix.m43 *= scale;
   model_matrix
 }
 
@@ -49,32 +48,17 @@ fn project_to_ndc(pvm: &Matrix4<f32>, p: Point3<f32>) -> Point3<f32> {
   Point3::new(p.x / p.w, p.y / p.w, p.z / p.w)
 }
 
-struct Triangle {
-  coords: [Point3<f32>; 3],
-  color: u32,
-}
-
-fn draw(frame_counter: u32, buf: &mut [u32]) {
-  let triangles = [
-    Triangle {
-      coords: [
-        Point3::new(-1.0, -1.0, 0.0),
-        Point3::new( 1.0, -1.0, 0.0),
-        Point3::new( 0.0,  1.0, 0.0),
-      ],
-      color: 0x00FF00FF,
-    },
-  ];
+fn draw(model: &obj::Obj<obj::Position>, frame_counter: u32, buf: &mut [u32]) {
   let t = frame_counter as f32 * 0.01;
   let model_matrix = model_matrix(
     Vector3::new(0.0, 0.0, 0.0),
     Rotation3::from_euler_angles(
       t, t, t,
     ).into(),
-    1.0,
+    30.0,
   );
   let view_matrix = view_matrix(
-    Point3::new(0.0, 0.0, -5.0),
+    Point3::new(0.0, 0.0, -10.0),
     Point3::new(0.0, 0.0, 0.0),
   );
   let projection_matrix = perspective_matrix(
@@ -84,13 +68,19 @@ fn draw(frame_counter: u32, buf: &mut [u32]) {
 
   // Fill with black.
   buf.fill(0x00000000);
-  // Draw triangles.
-  for triangle in &triangles {
-    let ndc = [
-      project_to_ndc(&pvm, triangle.coords[0]),
-      project_to_ndc(&pvm, triangle.coords[1]),
-      project_to_ndc(&pvm, triangle.coords[2]),
+  let mut i = 0;
+  while i < model.indices.len() {
+    let vertices = [
+      &model.vertices[model.indices[i + 0] as usize],
+      &model.vertices[model.indices[i + 1] as usize],
+      &model.vertices[model.indices[i + 2] as usize],
     ];
+    let ndc = [
+      project_to_ndc(&pvm, vertices[0].position.into()),
+      project_to_ndc(&pvm, vertices[1].position.into()),
+      project_to_ndc(&pvm, vertices[2].position.into()),
+    ];
+    i += 3;
     // Draw a triangle in screen coords.
     for pair in [
       (&ndc[0], &ndc[1]),
@@ -104,7 +94,7 @@ fn draw(frame_counter: u32, buf: &mut [u32]) {
         if x >= 0.0 && x < WIDTH as f32 && y >= 0.0 && y < HEIGHT as f32 {
           let x = x as usize;
           let y = y as usize;
-          buf[y * WIDTH + x] = triangle.color;
+          buf[y * WIDTH + x] = 0x00ff00ff;
         }
       }
     }
@@ -112,6 +102,10 @@ fn draw(frame_counter: u32, buf: &mut [u32]) {
 }
 
 fn main() {
+  let obj_data = include_bytes!("../assets/bunny.obj");
+  let bunny: obj::Obj<obj::Position> = obj::load_obj(std::io::Cursor::new(obj_data)).unwrap();
+  println!("Loaded bunny.obj with {} vertices", bunny.vertices.len());
+
   let mut window = Window::new(
     "Rasterize",
     WIDTH,
@@ -123,7 +117,7 @@ fn main() {
   let mut frame_counter = 0;
   let mut buffer: Vec<u32> = vec![0; WIDTH * HEIGHT];
   while window.is_open() && !window.is_key_down(Key::Escape) {
-    draw(frame_counter, &mut buffer);
+    draw(&bunny, frame_counter, &mut buffer);
     window.update_with_buffer(&buffer, WIDTH, HEIGHT).unwrap();
     frame_counter += 1;
   }
