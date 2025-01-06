@@ -1,8 +1,8 @@
 use minifb::{Key, Window, WindowOptions};
 use nalgebra::{Matrix4, Point3, Point4, Rotation3, UnitQuaternion, Vector3};
 
-const WIDTH:  usize = 640;
-const HEIGHT: usize = 480;
+const WIDTH:  usize = 1280;
+const HEIGHT: usize = 720;
 
 fn model_matrix(
   translation: Vector3<f32>,
@@ -51,18 +51,18 @@ fn project_to_ndc(pvm: &Matrix4<f32>, p: Point3<f32>) -> Point3<f32> {
 fn draw(model: &obj::Obj<obj::Position, u32>, frame_counter: u32, buf: &mut [u32]) {
   let t = frame_counter as f32 * 0.01;
   let model_matrix = model_matrix(
-    Vector3::new(0.0, 0.0, 0.0),
+    Vector3::new(0.0, -5.0, 0.0),
     Rotation3::from_euler_angles(
-      t, t, t,
+      0.0, 0.5 * t, 0.0,
     ).into(),
-    30.0,
+    0.02,
   );
   let view_matrix = view_matrix(
-    Point3::new(0.0, 0.0, -10.0),
+    Point3::new(0.0, 0.0, -0.1),
     Point3::new(0.0, 0.0, 0.0),
   );
   let projection_matrix = perspective_matrix(
-    60.0, HEIGHT as f32 / WIDTH as f32, 0.1, 100.0,
+    60.0, HEIGHT as f32 / WIDTH as f32, 0.1, 200.0,
   );
   let pvm = projection_matrix * view_matrix * model_matrix;
 
@@ -91,8 +91,11 @@ fn draw(model: &obj::Obj<obj::Position, u32>, frame_counter: u32, buf: &mut [u32
       for step in 0..step_count {
         let t = step as f32 / step_count as f32;
         let interpolated = pair.0 + (pair.1 - pair.0) * t;
+        if interpolated.z < 0.0 || interpolated.z > 1.0 {
+          continue;
+        }
         let x = interpolated.x * WIDTH as f32 / 2.0 + WIDTH as f32 / 2.0;
-        let y = interpolated.y * HEIGHT as f32 / 2.0 + HEIGHT as f32 / 2.0;
+        let y = -interpolated.y * HEIGHT as f32 / 2.0 + HEIGHT as f32 / 2.0;
         if x >= 0.0 && x < WIDTH as f32 && y >= 0.0 && y < HEIGHT as f32 {
           let x = x as usize;
           let y = y as usize;
