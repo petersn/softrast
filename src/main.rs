@@ -111,7 +111,7 @@ fn draw(model: &obj::Obj<obj::Position, u32>, frame_counter: u32, buf: &mut [u32
 
 fn main() {
   // let obj_data = include_bytes!("../assets/bunny.obj");
-  // let scene: obj::Obj<obj::Position> = obj::load_obj(std::io::Cursor::new(obj_data)).unwrap();
+  // let scene: obj::Obj<obj::Position, u32> = obj::load_obj(std::io::Cursor::new(obj_data)).unwrap();
   let obj_data = include_bytes!("../assets/Sponza/sponza.obj");
   let scene: obj::Obj<obj::Position, u32> = obj::load_obj(std::io::Cursor::new(obj_data)).unwrap();
 
