@@ -48,7 +48,7 @@ fn project_to_ndc(pvm: &Matrix4<f32>, p: Point3<f32>) -> Point3<f32> {
   Point3::new(p.x / p.w, p.y / p.w, p.z / p.w)
 }
 
-fn draw(model: &obj::Obj<obj::Position>, frame_counter: u32, buf: &mut [u32]) {
+fn draw(model: &obj::Obj<obj::Position, u32>, frame_counter: u32, buf: &mut [u32]) {
   let t = frame_counter as f32 * 0.01;
   let model_matrix = model_matrix(
     Vector3::new(0.0, 0.0, 0.0),
@@ -87,10 +87,12 @@ fn draw(model: &obj::Obj<obj::Position>, frame_counter: u32, buf: &mut [u32]) {
       (&ndc[1], &ndc[2]),
       (&ndc[0], &ndc[2]),
     ] {
-      for step in 0..200 {
-        let t = step as f32 / 200.0;
-        let x = (pair.0.x * (1.0 - t) + pair.1.x * t) * WIDTH as f32 / 2.0 + WIDTH as f32 / 2.0;
-        let y = (pair.0.y * (1.0 - t) + pair.1.y * t) * HEIGHT as f32 / 2.0 + HEIGHT as f32 / 2.0;
+      let step_count = 10;
+      for step in 0..step_count {
+        let t = step as f32 / step_count as f32;
+        let interpolated = pair.0 + (pair.1 - pair.0) * t;
+        let x = interpolated.x * WIDTH as f32 / 2.0 + WIDTH as f32 / 2.0;
+        let y = interpolated.y * HEIGHT as f32 / 2.0 + HEIGHT as f32 / 2.0;
         if x >= 0.0 && x < WIDTH as f32 && y >= 0.0 && y < HEIGHT as f32 {
           let x = x as usize;
           let y = y as usize;
@@ -102,9 +104,12 @@ fn draw(model: &obj::Obj<obj::Position>, frame_counter: u32, buf: &mut [u32]) {
 }
 
 fn main() {
-  let obj_data = include_bytes!("../assets/bunny.obj");
-  let bunny: obj::Obj<obj::Position> = obj::load_obj(std::io::Cursor::new(obj_data)).unwrap();
-  println!("Loaded bunny.obj with {} vertices", bunny.vertices.len());
+  // let obj_data = include_bytes!("../assets/bunny.obj");
+  // let scene: obj::Obj<obj::Position> = obj::load_obj(std::io::Cursor::new(obj_data)).unwrap();
+  let obj_data = include_bytes!("../assets/Sponza/sponza.obj");
+  let scene: obj::Obj<obj::Position, u32> = obj::load_obj(std::io::Cursor::new(obj_data)).unwrap();
+
+  println!("Loaded scener with {} vertices", scene.vertices.len());
 
   let mut window = Window::new(
     "Rasterize",
@@ -117,7 +122,7 @@ fn main() {
   let mut frame_counter = 0;
   let mut buffer: Vec<u32> = vec![0; WIDTH * HEIGHT];
   while window.is_open() && !window.is_key_down(Key::Escape) {
-    draw(&bunny, frame_counter, &mut buffer);
+    draw(&scene, frame_counter, &mut buffer);
     window.update_with_buffer(&buffer, WIDTH, HEIGHT).unwrap();
     frame_counter += 1;
   }
